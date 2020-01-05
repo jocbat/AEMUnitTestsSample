@@ -15,46 +15,65 @@
  */
 package com.aem.community.core.models;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.UUID;
-
-import junitx.util.PrivateAccessor;
-
-import org.apache.sling.settings.SlingSettingsService;
+import io.wcm.testing.mock.aem.junit.AemContext;
+import org.apache.sling.testing.mock.sling.ResourceResolverType;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
+
+import javax.inject.Inject;
+
+import java.util.List;
+
+import static junit.framework.Assert.assertTrue;
+import static junitx.framework.Assert.assertEquals;
+
 
 /**
  * Simple JUnit test verifying the HelloWorldModel
  */
+@RunWith(MockitoJUnitRunner.class)
 public class TestHelloWorldModel {
+    public static final String ROOT_PATH = "/content/dam/AEMMaven13";
+    @Rule
+    public final AemContext context = new AemContext(ResourceResolverType.JCR_OAK);
 
-    //@Inject
     private HelloWorldModel hello;
-    
-    private String slingId;
     
     @Before
     public void setup() throws Exception {
-        SlingSettingsService settings = mock(SlingSettingsService.class);
-        slingId = UUID.randomUUID().toString();
-        when(settings.getSlingId()).thenReturn(slingId);
-
         hello = new HelloWorldModel();
-        PrivateAccessor.setField(hello, "settings", settings);
-        hello.init();
-    }
-    
-    @Test
-    public void testGetMessage() throws Exception {
-        // some very basic junit tests
-        String msg = hello.getMessage();
-        assertNotNull(msg);
-        assertTrue(msg.length() > 0);
+        hello.resourceResolver = context.resourceResolver();
     }
 
+    @Test
+    public void given_application_dam_folder_getFolders_returns_all_folders() {
+        context.load().json("/dam_folders_normal_case.json",
+                ROOT_PATH);
+
+        List<String> folders = hello.getFolders();
+
+        assertEquals(9, folders.size());
+        assertTrue(folders.contains("folder1"));
+        assertTrue(folders.contains("subfolder11"));
+        assertTrue(folders.contains("subfolder111"));
+        assertTrue(folders.contains("subfolder12"));
+        assertTrue(folders.contains("subfolder13"));
+        assertTrue(folders.contains("folder2"));
+        assertTrue(folders.contains("subfolder21"));
+        assertTrue(folders.contains("subfolder22"));
+        assertTrue(folders.contains("folder3"));
+    }
+
+    @Test
+    public void given_empty_dam_folder_getFolders_returns_empty_folders_list() {
+        context.load().json("/dam_folders_empty_root.json",
+                ROOT_PATH);
+
+        List<String> folders = hello.getFolders();
+
+        assertEquals(0, folders.size());
+    }
 }
